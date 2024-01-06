@@ -1,6 +1,7 @@
-import { NextFunction, Request, Response } from "express";
+import { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
-import { getImageUrl, upload } from "../utils/image";
+import { getImageUrl } from "../utils/image";
+// import { generateCacheKey, getRedisClient } from "../utils/redis";
 
 const prisma = new PrismaClient();
 
@@ -23,7 +24,7 @@ export class ProfileController {
         message: "profile created successfully",
         data: {
           ...createdProfile,
-          image: getImageUrl(createdProfile.image ?? ""),
+          image: getImageUrl(req, createdProfile.image ?? ""),
         },
       });
     } catch (error) {
@@ -37,15 +38,26 @@ export class ProfileController {
       const datas = await prisma.profile.findMany();
       const profilesWithImageUrl = datas.map((profile) => ({
         ...profile,
-        image: getImageUrl(profile.image ?? ""),
+        image: getImageUrl(req, profile.image ?? ""),
       }));
+
+      /*     // Get the Redis client instance first:
+      const redisClient = await getRedisClient();
+
+      await redisClient.set(
+        generateCacheKey(req),
+        JSON.stringify(profilesWithImageUrl),
+        "EX",
+        60
+      ); // Cache for 60 seconds */
+
       res.status(200).json({
         message: "profile fetched successfully",
-        data: profilesWithImageUrl,
+        data: [profilesWithImageUrl],
       });
     } catch (error) {
       console.error(error);
-      res.status(500).json({ error: "Failed to create profile" });
+      res.status(500).json({ error: "Failed to create profiles" });
     }
   }
 
@@ -61,7 +73,7 @@ export class ProfileController {
 
       const profileWithImageUrl = {
         ...data,
-        image: getImageUrl(data.image ?? ""),
+        image: getImageUrl(req, data.image ?? ""),
       };
 
       res.status(200).json({
@@ -97,7 +109,7 @@ export class ProfileController {
       });
       const profileWithImageUrl = {
         ...data,
-        image: getImageUrl(data.image ?? ""),
+        image: getImageUrl(req, data.image ?? ""),
       };
       res.status(200).json({
         message: "Profile updated successfully",
@@ -127,7 +139,7 @@ export class ProfileController {
       });
     } catch (error) {
       console.error(error);
-      res.status(500).json({ error: "Failed to create profile" });
+      res.status(500).json({ error: "Failed to delete profile" });
     }
   }
 }
